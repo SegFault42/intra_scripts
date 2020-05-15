@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -19,6 +20,7 @@ type sToken struct {
 
 type intraProject struct {
 	ProjectsUsers []struct {
+		ID        int  `json:id`
 		Validated bool `json:"validated?"`
 		Project   struct {
 			ID int `json:"id"`
@@ -51,16 +53,7 @@ func getNewToken(uid, secret string) string {
 	return (tokenJson.AccessToken)
 }
 
-func intraUidToLogin(uid int) {
-	url := "https://api.intra.42.fr/v2/users/61663"
-
-	// get intra id
-	var clientId string = os.Getenv("CLIENTID")
-	var clientSecret string = os.Getenv("CLIENTSECRET")
-
-	token := getNewToken(clientId, clientSecret)
-
-	// get user list project
+func bearerGetRequest(token, url string) *http.Response {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		panic(err)
@@ -70,42 +63,41 @@ func intraUidToLogin(uid int) {
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
+		panic(err)
 	}
-	defer resp.Body.Close()
+	return resp
+}
+
+func getProjectID(intraUid int, token string) int {
+	url := "https://api.intra.42.fr/v2/users/" + strconv.Itoa(intraUid)
+	resp := bearerGetRequest(token, url)
 
 	body, _ := ioutil.ReadAll(resp.Body)
+	resp.Body.Close()
 
-	// fmt.Println(string(body))
-
-	// Declared an empty interface of type Array
 	var project intraProject
 
-	// Unmarshal or Decode the JSON to the interface.
-	err = json.Unmarshal([]byte(body), &project)
+	err := json.Unmarshal([]byte(body), &project)
 	if err != nil {
 		panic(err)
 	}
 
-	iter := len(project.ProjectsUsers)
-
-	for i := 0; i < iter; i++ {
-		fmt.Println(project.ProjectsUsers[i].Project.ID)
+	// check if project 902 is validate
+	for i := 0; i < len(project.ProjectsUsers); i++ {
+		if project.ProjectsUsers[i].Project.ID == 902 && project.ProjectsUsers[i].Validated == true {
+			return project.ProjectsUsers[i].ID
+		}
 	}
 
-	// array := results["projects_users"].(map[string]interface{})
-	// fmt.Println(reflect.TypeOf(array))
-
-	// fmt.Println(array[""])
-
-	// var user info
-	// err = json.Unmarshal([]byte(string(body)), &user)
-	// if err != nil {
-	// 	panic(err)
-	// 	return
-	// }
-	// fmt.Println(user)
+	return 0
 }
 
 func main() {
-	intraUidToLogin(50721)
+	clientId := os.Getenv("CLIENTID")
+	clientSecret := os.Getenv("CLIENTSECRET")
+
+	token := getNewToken(clientId, clientSecret)
+
+	projectId := getProjectID(61663, token)
+	fmt.Println(projectId)
 }
