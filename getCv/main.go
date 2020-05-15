@@ -40,6 +40,10 @@ type vogsphereRepo struct {
 	} `json:"teams"`
 }
 
+type usersList []struct {
+	IntraUserID int `json:"intra_user_id"`
+}
+
 func getNewToken(uid, secret string) string {
 	reader := strings.NewReader(`grant_type=client_credentials&client_id=` + uid + `&client_secret=` + secret)
 	req, err := http.NewRequest("POST", "https://api.intra.42.fr/oauth/token", reader)
@@ -144,14 +148,19 @@ func cloneRepo(vogsphereRepo, login string) {
 		log.Fatal(err)
 	}
 	os.RemoveAll(login + "/.git")
+}
 
-	// Prints the content of the CHANGELOG file from the cloned repository
-	// changelog, err := os.Open(filepath.Join(dir, ".git/config"))
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
+func getUsersList() usersList {
+	content, err := ioutil.ReadFile("users.json")
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	// io.Copy(os.Stdout, changelog)
+	var list usersList
+
+	json.Unmarshal(content, &list)
+
+	return list
 }
 
 func main() {
@@ -161,15 +170,20 @@ func main() {
 	token := getNewToken(clientId, clientSecret)
 	log.Println("Get token OK")
 
-	projectId, login := getProjectID(61663, token)
-	log.Println("GetProjectId ok")
+	usersList := getUsersList()
+	// Loop over all user >= level 5
+	for i, _ := range usersList {
+		projectId, login := getProjectID(usersList[i].IntraUserID, token)
+		log.Println("GetProjectId ok")
 
-	if projectId != 0 {
-		vogsphereAddress := getVogsphereAddress(projectId, token)
-		log.Println("Get Vogsphere address ok")
-		if vogsphereAddress != "" {
-			log.Println("Cloning Repo ...")
-			cloneRepo(vogsphereAddress, login)
+		if projectId != 0 {
+			vogsphereAddress := getVogsphereAddress(projectId, token)
+			log.Println("Get Vogsphere address ok")
+			if vogsphereAddress != "" {
+				log.Println("Cloning Repo ...")
+				cloneRepo(vogsphereAddress, login)
+			}
 		}
 	}
+
 }
