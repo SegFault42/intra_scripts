@@ -9,17 +9,21 @@ import (
 	"strings"
 )
 
-type info struct {
-	id    string `json:"id"`
-	login string `json:"login"`
-}
-
 type sToken struct {
 	AccessToken string `json:"access_token"`
 	TokenType   string `json:"token_type"`
 	ExpiresIn   int    `json:"expires_in"`
 	Scope       string `json:"scope"`
 	CreatedAt   int    `json:"created_at"`
+}
+
+type intraProject struct {
+	ProjectsUsers []struct {
+		Validated bool `json:"validated?"`
+		Project   struct {
+			ID int `json:"id"`
+		} `json:"project"`
+	} `json:"projects_users"`
 }
 
 func getNewToken(uid, secret string) string {
@@ -48,7 +52,7 @@ func getNewToken(uid, secret string) string {
 }
 
 func intraUidToLogin(uid int) {
-	url := "https://api.intra.42.fr/v2/users/45317"
+	url := "https://api.intra.42.fr/v2/users/61663"
 
 	// get intra id
 	var clientId string = os.Getenv("CLIENTID")
@@ -71,7 +75,27 @@ func intraUidToLogin(uid int) {
 
 	body, _ := ioutil.ReadAll(resp.Body)
 
-	fmt.Println(string(body))
+	// fmt.Println(string(body))
+
+	// Declared an empty interface of type Array
+	var project intraProject
+
+	// Unmarshal or Decode the JSON to the interface.
+	err = json.Unmarshal([]byte(body), &project)
+	if err != nil {
+		panic(err)
+	}
+
+	iter := len(project.ProjectsUsers)
+
+	for i := 0; i < iter; i++ {
+		fmt.Println(project.ProjectsUsers[i].Project.ID)
+	}
+
+	// array := results["projects_users"].(map[string]interface{})
+	// fmt.Println(reflect.TypeOf(array))
+
+	// fmt.Println(array[""])
 
 	// var user info
 	// err = json.Unmarshal([]byte(string(body)), &user)
