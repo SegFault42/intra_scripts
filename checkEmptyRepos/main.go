@@ -1,7 +1,8 @@
 package main
 
 import (
-	"fmt"
+	"encoding/json"
+	"io/ioutil"
 	"log"
 	"os/user"
 
@@ -11,6 +12,13 @@ import (
 	"github.com/go-git/go-git/v5/storage/memory"
 	"gopkg.in/src-d/go-git.v4/plumbing/transport/ssh"
 )
+
+type intraTeams []struct {
+	RepoURL   string `json:"Repo URL"`
+	Login     string `json:"Name"`
+	ID        int    `json:"ID"`
+	ProjectID int    `json:"Project ID"`
+}
 
 func setSshAuth() (*ssh.PublicKeys, error) {
 	// clone with ssh key
@@ -54,8 +62,32 @@ func isRepoEmpty(repo string) bool {
 	return false
 }
 
+func parseJson(jsonFile string) (intraTeams, error) {
+	var list intraTeams
+
+	content, err := ioutil.ReadFile(jsonFile)
+	if err != nil {
+		return list, err
+	}
+
+	json.Unmarshal(content, &list)
+
+	return list, nil
+}
+
 // Retrieve remote tags without cloning repository
 func main() {
-	isEmpty := isRepoEmpty("git@vogsphere.msk.21-school.ru:vogsphere/intra-uuid-b82b46b0-0aab-4300-9bfb-d4f9765bfb74-2733882")
-	fmt.Println(isEmpty)
+	vogsphereList, err := parseJson("IntraTeams.json")
+	if err != nil {
+		log.Fatal(err)
+	}
+	for i, _ := range vogsphereList {
+		isEmpty := isRepoEmpty(vogsphereList[i].RepoURL)
+		logs.Info("\nLogin: ", vogsphereList[i].Login,
+			"\nRepoURL: ", vogsphereList[i].RepoURL,
+			"\nProjectID: ", vogsphereList[i].ProjectID,
+			"\nID: ", vogsphereList[i].ID,
+			"\nIs empty: ", isEmpty)
+	}
+
 }
