@@ -2,12 +2,14 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
 	"os/user"
 	"strings"
 
+	"github.com/akamensky/argparse"
 	"github.com/astaxie/beego/logs"
 	"github.com/go-git/go-git/v5"
 	"gopkg.in/src-d/go-git.v4/plumbing/transport/ssh"
@@ -19,8 +21,8 @@ type usersList []struct {
 	FinalMark int    `json:"Final Mark"`
 }
 
-func getUsersList() usersList {
-	content, err := ioutil.ReadFile("users1.json")
+func getUsersList(jsonFile string) usersList {
+	content, err := ioutil.ReadFile(jsonFile)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -57,10 +59,28 @@ func cloneRepo(vogsphereRepo, login string) {
 	os.RemoveAll(login + "/.git")
 }
 
-func main() {
-	var list usersList
+func parseArgs() *string {
+	parser := argparse.NewParser("clone Repositories", "This program is made to clone many repository from 21vogsphere")
+	args := parser.String("j", "json", &argparse.Options{Required: true, Help: "json to parse"})
 
-	list = getUsersList()
+	// Parse input
+	err := parser.Parse(os.Args)
+	if err != nil {
+		fmt.Print(parser.Usage(err))
+		return nil
+	}
+
+	return args
+}
+
+func main() {
+	args := parseArgs()
+	if args == nil {
+		return
+	}
+
+	// var list usersList
+	list := getUsersList(*args)
 
 	for i, _ := range list {
 		list[i].Name = strings.Split(list[i].Name, "'")[0]
