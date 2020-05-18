@@ -79,16 +79,13 @@ func main() {
 		return
 	}
 
-	// var list usersList
 	list := getUsersList(*args)
 
 	for i, _ := range list {
 		list[i].Name = strings.Split(list[i].Name, "'")[0]
-		// if _, err := os.Stat(list[i].Name); os.IsNotExist(err) {
 		if list[i].FinalMark > 0 {
 			log.Println("Cloning ", list[i].Name, "'s repo")
 			cloneRepo(list[i].RepoURL, list[i].Name)
 		}
-		// }
 	}
 }
